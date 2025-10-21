@@ -252,9 +252,14 @@
 
 /* Tagging Modal */
 #storytimeline-tagging-modal {
-    background: var(--SmartThemeBlurTintColor) !important;
+    background: var(--SmartThemeBodyColor) !important;
     border: 2px solid var(--SmartThemeBorderColor) !important;
     color: var(--SmartThemeEmColor);
+    cursor: move;
+}
+
+#storytimeline-tagging-modal h3 {
+    cursor: move;
 }
 
 #storytimeline-tagging-modal h3 {

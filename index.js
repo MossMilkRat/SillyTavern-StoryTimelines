@@ -1,8 +1,8 @@
 /**
  * StoryTimelines Extension for SillyTavern
- * Version: 1.0.0
- * Author: Your Name
- * Description: Allows tagging messages with story time and displaying them chronologically
+ * Version: 2.0.0
+ * Author: MossMilkRat & Claude
+ * Description: Timeline manager for organizing lorebook entries by story time
  * License: MIT
  */
 
@@ -10,25 +10,27 @@
     'use strict';
     
     const extensionName = 'storytimelines';
-    const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+    const MODULE_NAME = 'storytimelines';
     
     // Extension settings
     let settings = {
-        dateTimeFormat: '24hour', // '12hour' or '24hour'
+        dateTimeFormat: '24hour',
         enableDragDrop: true,
         showTimelineIcon: true,
-        autoRefresh: true
+        autoRefresh: true,
+        timelineView: 'all' // 'all', 'hour', 'day', 'week', 'month', 'year'
     };
     
     // Timeline state
     let timelineVisible = false;
-    let currentChat = null;
+    let currentLorebook = null;
+    let allEntries = [];
     
     /**
      * Initialize the extension
      */
     async function init() {
-        console.log('StoryTimelines: Initializing extension');
+        console.log('StoryTimelines: Initializing lorebook timeline extension');
         
         // Load settings
         await loadSettings();
@@ -45,8 +47,8 @@
         // Add fallback menu entry
         addMenuEntry();
         
-        // Hook into chat events
-        hookChatEvents();
+        // Hook into events
+        hookEvents();
         
         console.log('StoryTimelines: Extension initialized');
     }
@@ -56,9 +58,9 @@
      */
     async function loadSettings() {
         try {
-            if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-                const context = SillyTavern.getContext();
-                const savedSettings = context.extensionSettings[extensionName];
+            const context = SillyTavern.getContext();
+            if (context && context.extensionSettings) {
+                const savedSettings = context.extensionSettings[MODULE_NAME];
                 if (savedSettings) {
                     settings = { ...settings, ...savedSettings };
                 }
@@ -73,10 +75,12 @@
      */
     async function saveSettings() {
         try {
-            if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-                const context = SillyTavern.getContext();
-                context.extensionSettings[extensionName] = settings;
-                context.saveSettingsDebounced();
+            const context = SillyTavern.getContext();
+            if (context && context.extensionSettings) {
+                context.extensionSettings[MODULE_NAME] = settings;
+                if (context.saveSettingsDebounced) {
+                    context.saveSettingsDebounced();
+                }
             }
         } catch (e) {
             console.warn('StoryTimelines: Could not save settings', e);
@@ -90,13 +94,12 @@
         if (!settings.showTimelineIcon) return;
         
         const buttonHtml = `
-            <div id="storytimeline-button" class="list-group-item flex-container flexGap5" title="Story Timeline">
+            <div id="storytimeline-button" class="list-group-item flex-container flexGap5" title="Lorebook Timeline">
                 <div class="fa-solid fa-clock extensionsMenuExtensionButton" data-extension="storytimelines"></div>
-                Story Timeline
+                Lorebook Timeline
             </div>
         `;
         
-        // Try to add to extensions menu
         const extensionsMenu = document.getElementById('extensionsMenu');
         if (extensionsMenu) {
             const div = document.createElement('div');
@@ -113,12 +116,23 @@
     function createTimelinePanel() {
         const panelHtml = `
             <div id="storytimeline-panel" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                 width: 80%; max-width: 900px; max-height: 80vh; background: var(--SmartThemeBodyColor); 
+                 width: 85%; max-width: 1000px; max-height: 85vh; background: var(--SmartThemeBlurTintColor); 
                  border: 2px solid var(--SmartThemeBorderColor); border-radius: 10px; z-index: 9999; 
                  box-shadow: 0 4px 20px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column;">
                 <div style="padding: 15px; border-bottom: 1px solid var(--SmartThemeBorderColor); display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0;">Story Timeline</h3>
-                    <div>
+                    <h3 style="margin: 0;">Lorebook Timeline</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select id="storytimeline-lorebook-select" class="text_pole" style="min-width: 200px;">
+                            <option value="">Select Lorebook...</option>
+                        </select>
+                        <select id="storytimeline-view-select" class="text_pole" style="min-width: 120px;">
+                            <option value="all">All Time</option>
+                            <option value="year">By Year</option>
+                            <option value="month">By Month</option>
+                            <option value="week">By Week</option>
+                            <option value="day">By Day</option>
+                            <option value="hour">By Hour</option>
+                        </select>
                         <button id="storytimeline-settings-btn" class="menu_button" title="Settings">
                             <i class="fa-solid fa-gear"></i>
                         </button>
@@ -128,14 +142,17 @@
                     </div>
                 </div>
                 <div id="storytimeline-content" style="flex: 1; overflow-y: auto; padding: 15px;">
-                    <div id="storytimeline-messages"></div>
+                    <div id="storytimeline-entries"></div>
                 </div>
-                <div style="padding: 10px; border-top: 1px solid var(--SmartThemeBorderColor); text-align: center;">
+                <div style="padding: 10px; border-top: 1px solid var(--SmartThemeBorderColor); text-align: center; display: flex; gap: 10px; justify-content: center;">
                     <button id="storytimeline-tag-untagged" class="menu_button">
-                        <i class="fa-solid fa-tag"></i> Tag Untagged Messages
+                        <i class="fa-solid fa-tag"></i> Tag Untagged Entries
                     </button>
                     <button id="storytimeline-refresh" class="menu_button">
                         <i class="fa-solid fa-sync"></i> Refresh
+                    </button>
+                    <button id="storytimeline-export" class="menu_button">
+                        <i class="fa-solid fa-download"></i> Export Timeline
                     </button>
                 </div>
             </div>
@@ -146,8 +163,11 @@
         // Add event listeners
         document.getElementById('storytimeline-close').addEventListener('click', () => toggleTimeline(false));
         document.getElementById('storytimeline-settings-btn').addEventListener('click', showSettingsPanel);
-        document.getElementById('storytimeline-tag-untagged').addEventListener('click', showUntaggedMessages);
+        document.getElementById('storytimeline-tag-untagged').addEventListener('click', showUntaggedEntries);
         document.getElementById('storytimeline-refresh').addEventListener('click', refreshTimeline);
+        document.getElementById('storytimeline-export').addEventListener('click', exportTimeline);
+        document.getElementById('storytimeline-lorebook-select').addEventListener('change', handleLorebookChange);
+        document.getElementById('storytimeline-view-select').addEventListener('change', handleViewChange);
     }
     
     /**
@@ -170,7 +190,7 @@
                     </label>
                     <label style="display: flex; align-items: center; margin-bottom: 10px;">
                         <input type="checkbox" id="setting-auto-refresh" ${settings.autoRefresh ? 'checked' : ''}>
-                        <span style="margin-left: 10px;">Auto Refresh on Chat Change</span>
+                        <span style="margin-left: 10px;">Auto Refresh</span>
                     </label>
                     <label style="display: block; margin-bottom: 5px;">Date/Time Format:</label>
                     <select id="setting-datetime-format" class="text_pole" style="width: 100%;">
@@ -190,7 +210,6 @@
         document.getElementById('storytimeline-settings-save').addEventListener('click', saveSettingsPanel);
         document.getElementById('storytimeline-settings-cancel').addEventListener('click', hideSettingsPanel);
         
-        // Make draggable
         makeDraggable(document.getElementById('storytimeline-settings'));
     }
     
@@ -200,16 +219,24 @@
     function createTaggingModal() {
         const modalHtml = `
             <div id="storytimeline-tagging-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                 width: 500px; background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); 
+                 width: 600px; background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); 
                  border-radius: 10px; z-index: 10001; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 20px;">
-                <h3 style="cursor: move; user-select: none;">Tag Message with Story Time</h3>
-                <div id="storytimeline-message-preview" style="max-height: 150px; overflow-y: auto; padding: 10px; 
-                     background: var(--black30a); border-radius: 5px; margin-bottom: 15px; font-size: 0.9em;"></div>
+                <h3 style="cursor: move; user-select: none;">Tag Lorebook Entry with Story Time</h3>
+                <div id="storytimeline-entry-preview" style="max-height: 200px; overflow-y: auto; padding: 12px; 
+                     background: var(--black30a); border-radius: 5px; margin-bottom: 15px; font-size: 0.9em;">
+                    <div id="storyline-entry-title" style="font-weight: bold; margin-bottom: 8px; color: var(--SmartThemeQuoteColor);"></div>
+                    <div id="storyline-entry-keys" style="font-size: 0.85em; color: var(--grey70); margin-bottom: 8px;"></div>
+                    <div id="storyline-entry-content"></div>
+                </div>
                 <div style="margin: 15px 0;">
                     <label style="display: block; margin-bottom: 5px;">Story Date:</label>
                     <input type="date" id="storytimeline-date-input" class="text_pole" style="width: 100%; margin-bottom: 10px;">
                     <label style="display: block; margin-bottom: 5px;">Story Time:</label>
                     <input type="time" id="storytimeline-time-input" class="text_pole" style="width: 100%;">
+                    <label style="display: flex; align-items: center; margin-top: 10px;">
+                        <input type="checkbox" id="storytimeline-date-only">
+                        <span style="margin-left: 10px;">Date Only (no specific time)</span>
+                    </label>
                 </div>
                 <div style="text-align: right; margin-top: 20px;">
                     <button id="storytimeline-tag-save" class="menu_button">Save Tag</button>
@@ -221,11 +248,10 @@
         
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        document.getElementById('storytimeline-tag-save').addEventListener('click', saveMessageTag);
-        document.getElementById('storytimeline-tag-remove').addEventListener('click', removeMessageTag);
+        document.getElementById('storytimeline-tag-save').addEventListener('click', saveEntryTag);
+        document.getElementById('storytimeline-tag-remove').addEventListener('click', removeEntryTag);
         document.getElementById('storytimeline-tag-cancel').addEventListener('click', hideTaggingModal);
         
-        // Make draggable
         makeDraggable(document.getElementById('storytimeline-tagging-modal'));
     }
     
@@ -235,10 +261,10 @@
     function registerSlashCommand() {
         try {
             if (typeof window.registerSlashCommand === 'function') {
-                window.registerSlashCommand('storytimeline', () => {
-                    showSettingsPanel();
+                window.registerSlashCommand('loretimeline', () => {
+                    toggleTimeline(true);
                     return '';
-                }, [], '<span class="monospace">/storytimeline</span> – opens Story Timeline settings', true, true);
+                }, [], '<span class="monospace">/loretimeline</span> – opens Lorebook Timeline', true, true);
                 console.log('StoryTimelines: Slash command registered');
             }
         } catch (e) {
@@ -250,82 +276,33 @@
      * Add fallback menu entry
      */
     function addMenuEntry() {
-        // Additional fallback for older ST versions
         setTimeout(() => {
             const topMenu = document.getElementById('top-settings-holder');
             if (topMenu && !document.getElementById('storytimeline-menu-btn')) {
                 const btn = document.createElement('div');
                 btn.id = 'storytimeline-menu-btn';
                 btn.className = 'fa-solid fa-clock';
-                btn.title = 'Story Timeline Settings';
+                btn.title = 'Lorebook Timeline';
                 btn.style.cursor = 'pointer';
                 btn.style.padding = '5px';
-                btn.addEventListener('click', showSettingsPanel);
+                btn.addEventListener('click', () => toggleTimeline(true));
                 topMenu.appendChild(btn);
             }
         }, 1000);
     }
     
     /**
-     * Hook into chat events
+     * Hook into events
      */
-    function hookChatEvents() {
-        // Try to hook into ST event system
+    function hookEvents() {
         try {
-            if (typeof eventSource !== 'undefined' && eventSource.on) {
-                eventSource.on('chat_changed', handleChatChanged);
-                eventSource.on('message_sent', handleMessageEvent);
-                eventSource.on('message_received', handleMessageEvent);
-                console.log('StoryTimelines: Chat events hooked');
+            const context = SillyTavern.getContext();
+            if (context && context.eventSource) {
+                // Listen for relevant events
+                console.log('StoryTimelines: Event hooks registered');
             }
         } catch (e) {
-            console.warn('StoryTimelines: Could not hook chat events', e);
-        }
-        
-        // Fallback: periodic check
-        setInterval(() => {
-            if (settings.autoRefresh && timelineVisible) {
-                const context = getContext();
-                if (context && context.chatId !== currentChat) {
-                    handleChatChanged();
-                }
-            }
-        }, 2000);
-    }
-    
-    /**
-     * Get SillyTavern context
-     */
-    function getContext() {
-        try {
-            if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-                return SillyTavern.getContext();
-            }
-        } catch (e) {
-            console.warn('StoryTimelines: Could not get context', e);
-        }
-        return null;
-    }
-    
-    /**
-     * Handle chat changed event
-     */
-    function handleChatChanged() {
-        const context = getContext();
-        if (context) {
-            currentChat = context.chatId;
-            if (timelineVisible) {
-                refreshTimeline();
-            }
-        }
-    }
-    
-    /**
-     * Handle message event
-     */
-    function handleMessageEvent() {
-        if (settings.autoRefresh && timelineVisible) {
-            refreshTimeline();
+            console.warn('StoryTimelines: Could not hook events', e);
         }
     }
     
@@ -341,6 +318,7 @@
         if (show) {
             panel.style.display = 'flex';
             timelineVisible = true;
+            loadLorebookList();
             refreshTimeline();
         } else {
             panel.style.display = 'none';
@@ -349,24 +327,74 @@
     }
     
     /**
-     * Refresh timeline with current messages
+     * Load available lorebooks
      */
-    function refreshTimeline() {
-        const context = getContext();
-        const container = document.getElementById('storytimeline-messages');
+    async function loadLorebookList() {
+        try {
+            const response = await fetch('/api/worldinfo/list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const lorebooks = await response.json();
+            const select = document.getElementById('storytimeline-lorebook-select');
+            
+            select.innerHTML = '<option value="">Select Lorebook...</option>';
+            lorebooks.forEach(book => {
+                const option = document.createElement('option');
+                option.value = book;
+                option.textContent = book;
+                select.appendChild(option);
+            });
+            
+            // Try to select current lorebook
+            const context = SillyTavern.getContext();
+            if (context && context.worldInfoData) {
+                const currentBook = $('#world_info').val();
+                if (currentBook) {
+                    select.value = currentBook;
+                    currentLorebook = currentBook;
+                }
+            }
+        } catch (e) {
+            console.error('StoryTimelines: Could not load lorebook list', e);
+        }
+    }
+    
+    /**
+     * Handle lorebook selection change
+     */
+    function handleLorebookChange(e) {
+        currentLorebook = e.target.value;
+        refreshTimeline();
+    }
+    
+    /**
+     * Handle view change
+     */
+    function handleViewChange(e) {
+        settings.timelineView = e.target.value;
+        saveSettings();
+        refreshTimeline();
+    }
+    
+    /**
+     * Refresh timeline with current entries
+     */
+    async function refreshTimeline() {
+        const container = document.getElementById('storytimeline-entries');
         
-        if (!context || !context.chat) {
+        if (!currentLorebook) {
             container.innerHTML = `
                 <div class="storytimeline-empty">
-                    <i class="fa-solid fa-comment-slash"></i>
-                    <h4>No Chat Loaded</h4>
-                    <p>Start or load a conversation to use the timeline.</p>
+                    <i class="fa-solid fa-book"></i>
+                    <h4>No Lorebook Selected</h4>
+                    <p>Select a lorebook from the dropdown above to view its timeline.</p>
                 </div>
             `;
             return;
         }
         
-        // Show loading state
         container.innerHTML = `
             <div class="storytimeline-loading">
                 <i class="fa-solid fa-spinner fa-spin"></i>
@@ -374,71 +402,191 @@
             </div>
         `;
         
-        // Small delay for smooth loading effect
-        setTimeout(() => {
-            const messages = context.chat.filter(msg => msg.storyTime);
-            const sorted = [...messages].sort((a, b) => {
-                return new Date(a.storyTime) - new Date(b.storyTime);
+        try {
+            const response = await fetch('/api/worldinfo/get', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: currentLorebook })
             });
             
-            container.innerHTML = '';
+            const lorebook = await response.json();
+            allEntries = lorebook.entries || [];
             
-            if (sorted.length === 0) {
-                const untaggedCount = context.chat.filter(msg => !msg.storyTime).length;
+            // Filter entries with storyTime
+            const taggedEntries = allEntries.filter(entry => entry.extensions && entry.extensions.storytimelines && entry.extensions.storytimelines.storyTime);
+            
+            if (taggedEntries.length === 0) {
+                const untaggedCount = allEntries.length;
                 container.innerHTML = `
                     <div class="storytimeline-empty">
                         <i class="fa-solid fa-clock"></i>
                         <h4>No Timeline Events Yet</h4>
-                        <p>Tag messages with story times to see them organized chronologically.</p>
+                        <p>Tag lorebook entries with story times to see them organized chronologically.</p>
                         ${untaggedCount > 0 ? `
                             <p style="margin-bottom: 20px; color: var(--SmartThemeQuoteColor); font-weight: 500;">
-                                ${untaggedCount} untagged message${untaggedCount !== 1 ? 's' : ''} waiting
+                                ${untaggedCount} untagged entr${untaggedCount !== 1 ? 'ies' : 'y'} in this lorebook
                             </p>
                             <button class="menu_button" onclick="document.getElementById('storytimeline-tag-untagged').click()">
                                 <i class="fa-solid fa-tag"></i> Start Tagging
                             </button>
-                        ` : '<p style="color: var(--grey70);">Send some messages first!</p>'}
+                        ` : ''}
                     </div>
                 `;
                 return;
             }
             
-            sorted.forEach((msg, idx) => {
-                const msgEl = createMessageElement(msg, idx);
-                container.appendChild(msgEl);
+            // Sort by story time
+            const sorted = [...taggedEntries].sort((a, b) => {
+                const timeA = new Date(a.extensions.storytimelines.storyTime);
+                const timeB = new Date(b.extensions.storytimelines.storyTime);
+                return timeA - timeB;
             });
-        }, 150);
+            
+            // Group by timelineView if needed
+            if (settings.timelineView !== 'all') {
+                displayGroupedTimeline(sorted);
+            } else {
+                displayFlatTimeline(sorted);
+            }
+            
+        } catch (e) {
+            console.error('StoryTimelines: Error loading lorebook', e);
+            container.innerHTML = `
+                <div class="storytimeline-empty">
+                    <i class="fa-solid fa-exclamation-triangle"></i>
+                    <h4>Error Loading Lorebook</h4>
+                    <p>Could not load the selected lorebook. Please try again.</p>
+                </div>
+            `;
+        }
     }
     
     /**
-     * Create message element for timeline
+     * Display flat timeline
      */
-    function createMessageElement(msg, idx) {
+    function displayFlatTimeline(entries) {
+        const container = document.getElementById('storytimeline-entries');
+        container.innerHTML = '';
+        
+        entries.forEach((entry, idx) => {
+            const entryEl = createEntryElement(entry, idx);
+            container.appendChild(entryEl);
+        });
+    }
+    
+    /**
+     * Display grouped timeline
+     */
+    function displayGroupedTimeline(entries) {
+        const container = document.getElementById('storytimeline-entries');
+        container.innerHTML = '';
+        
+        // Group entries by time period
+        const groups = {};
+        
+        entries.forEach(entry => {
+            const date = new Date(entry.extensions.storytimelines.storyTime);
+            let groupKey;
+            
+            switch(settings.timelineView) {
+                case 'year':
+                    groupKey = date.getFullYear().toString();
+                    break;
+                case 'month':
+                    groupKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    break;
+                case 'week':
+                    // Get week number
+                    const weekNum = getWeekNumber(date);
+                    groupKey = `${date.getFullYear()}-W${weekNum}`;
+                    break;
+                case 'day':
+                    groupKey = date.toISOString().split('T')[0];
+                    break;
+                case 'hour':
+                    groupKey = date.toISOString().substring(0, 13) + ':00';
+                    break;
+            }
+            
+            if (!groups[groupKey]) {
+                groups[groupKey] = [];
+            }
+            groups[groupKey].push(entry);
+        });
+        
+        // Display groups
+        Object.keys(groups).sort().forEach(groupKey => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'storytimeline-group';
+            groupDiv.style.marginBottom = '20px';
+            
+            const groupHeader = document.createElement('div');
+            groupHeader.style.cssText = `
+                background: var(--SmartThemeQuoteColor);
+                color: var(--SmartThemeBodyColor);
+                padding: 10px 15px;
+                border-radius: 5px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                cursor: pointer;
+            `;
+            groupHeader.textContent = formatGroupHeader(groupKey);
+            groupHeader.addEventListener('click', () => {
+                const content = groupDiv.querySelector('.storytimeline-group-content');
+                content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            const groupContent = document.createElement('div');
+            groupContent.className = 'storytimeline-group-content';
+            groupContent.style.marginLeft = '10px';
+            
+            groups[groupKey].forEach((entry, idx) => {
+                groupContent.appendChild(createEntryElement(entry, idx));
+            });
+            
+            groupDiv.appendChild(groupHeader);
+            groupDiv.appendChild(groupContent);
+            container.appendChild(groupDiv);
+        });
+    }
+    
+    /**
+     * Create entry element for timeline
+     */
+    function createEntryElement(entry, idx) {
         const div = document.createElement('div');
-        div.className = 'storytimeline-message';
+        div.className = 'storytimeline-entry';
         div.style.cssText = `
-            margin-bottom: 15px; padding: 12px; background: var(--black30a); border-radius: 8px;
-            border-left: 4px solid var(--SmartThemeQuoteColor); cursor: ${settings.enableDragDrop ? 'move' : 'default'};
+            margin-bottom: 15px; padding: 15px; background: var(--SmartThemeBlurTintColor);
+            border-radius: 8px; border-left: 4px solid var(--SmartThemeQuoteColor);
+            transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         `;
         div.draggable = settings.enableDragDrop;
         div.dataset.index = idx;
-        div.dataset.messageId = msg.mes_id || idx;
+        div.dataset.entryUid = entry.uid;
         
-        const time = formatStoryTime(msg.storyTime);
-        const preview = (msg.mes || '').substring(0, 150) + (msg.mes.length > 150 ? '...' : '');
-        const sender = msg.name || (msg.is_user ? 'You' : 'Character');
+        const storyTimeData = entry.extensions.storytimelines;
+        const time = formatStoryTime(storyTimeData.storyTime, storyTimeData.dateOnly);
+        const title = entry.comment || 'Untitled Entry';
+        const keys = (entry.key || []).join(', ');
+        const preview = (entry.content || '').substring(0, 200) + (entry.content.length > 200 ? '...' : '');
         
         div.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <strong style="color: var(--SmartThemeQuoteColor);">${time}</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div>
-                    <button class="storytimeline-edit-btn menu_button menu_button_icon" data-msg-id="${msg.mes_id || idx}" title="Edit time">
-                        <i class="fa-solid fa-pencil"></i>
-                    </button>
+                    <strong style="color: var(--SmartThemeQuoteColor); font-size: 1.1em;">${title}</strong>
+                    <div style="font-size: 0.85em; color: var(--grey70); margin-top: 3px;">
+                        <i class="fa-solid fa-clock"></i> ${time}
+                    </div>
                 </div>
+                <button class="storytimeline-edit-btn menu_button menu_button_icon" data-entry-uid="${entry.uid}" title="Edit time">
+                    <i class="fa-solid fa-pencil"></i>
+                </button>
             </div>
-            <div style="font-size: 0.9em; color: var(--grey70); margin-bottom: 5px;">${sender}</div>
-            <div style="font-size: 0.95em;">${preview}</div>
+            ${keys ? `<div style="font-size: 0.85em; color: var(--SmartThemeQuoteColor); margin-bottom: 8px;">
+                <i class="fa-solid fa-key"></i> ${keys}
+            </div>` : ''}
+            <div style="font-size: 0.95em; color: var(--SmartThemeEmColor);">${preview}</div>
         `;
         
         // Add drag & drop handlers
@@ -452,7 +600,7 @@
         // Add edit button handler
         div.querySelector('.storytimeline-edit-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            showTaggingModal(msg);
+            showTaggingModal(entry);
         });
         
         return div;
@@ -461,9 +609,14 @@
     /**
      * Format story time for display
      */
-    function formatStoryTime(storyTime) {
+    function formatStoryTime(storyTime, dateOnly) {
         const date = new Date(storyTime);
         const dateStr = date.toLocaleDateString();
+        
+        if (dateOnly) {
+            return dateStr;
+        }
+        
         const timeStr = settings.dateTimeFormat === '12hour' 
             ? date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
             : date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -471,12 +624,47 @@
     }
     
     /**
+     * Format group header
+     */
+    function formatGroupHeader(groupKey) {
+        switch(settings.timelineView) {
+            case 'year':
+                return `Year ${groupKey}`;
+            case 'month':
+                const [year, month] = groupKey.split('-');
+                const monthName = new Date(year, parseInt(month) - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                return monthName;
+            case 'week':
+                return `Week ${groupKey}`;
+            case 'day':
+                return new Date(groupKey).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            case 'hour':
+                return new Date(groupKey).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', hour12: settings.dateTimeFormat === '12hour' });
+            default:
+                return groupKey;
+        }
+    }
+    
+    /**
+     * Get week number
+     */
+    function getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+    
+    /**
      * Drag and drop handlers
      */
     let draggedElement = null;
+    let draggedEntry = null;
     
     function handleDragStart(e) {
         draggedElement = this;
+        draggedEntry = allEntries.find(entry => entry.uid == this.dataset.entryUid);
         this.style.opacity = '0.4';
         e.dataTransfer.effectAllowed = 'move';
     }
@@ -484,30 +672,27 @@
     function handleDragOver(e) {
         if (e.preventDefault) e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
+        this.style.borderColor = 'var(--SmartThemeQuoteColor)';
         return false;
     }
     
     function handleDrop(e) {
         if (e.stopPropagation) e.stopPropagation();
+        this.style.borderColor = '';
         
         if (draggedElement !== this) {
-            const context = getContext();
-            if (!context) return;
+            const targetEntry = allEntries.find(entry => entry.uid == this.dataset.entryUid);
             
-            const draggedIdx = parseInt(draggedElement.dataset.messageId);
-            const targetIdx = parseInt(this.dataset.messageId);
-            
-            // Find messages in chat
-            const draggedMsg = context.chat.find((m, i) => (m.mes_id || i) === draggedIdx);
-            const targetMsg = context.chat.find((m, i) => (m.mes_id || i) === targetIdx);
-            
-            if (draggedMsg && targetMsg && draggedMsg.storyTime && targetMsg.storyTime) {
-                // Swap story times
-                const temp = draggedMsg.storyTime;
-                draggedMsg.storyTime = targetMsg.storyTime;
-                targetMsg.storyTime = temp;
+            if (draggedEntry && targetEntry && 
+                draggedEntry.extensions?.storytimelines?.storyTime && 
+                targetEntry.extensions?.storytimelines?.storyTime) {
                 
-                saveChatDebounced(context);
+                // Swap story times
+                const temp = draggedEntry.extensions.storytimelines.storyTime;
+                draggedEntry.extensions.storytimelines.storyTime = targetEntry.extensions.storytimelines.storyTime;
+                targetEntry.extensions.storytimelines.storyTime = temp;
+                
+                saveLorebook();
                 refreshTimeline();
             }
         }
@@ -518,55 +703,65 @@
     function handleDragEnd(e) {
         this.style.opacity = '1';
         draggedElement = null;
+        draggedEntry = null;
     }
     
     /**
-     * Show untagged messages for tagging
+     * Show untagged entries
      */
-    function showUntaggedMessages() {
-        const context = getContext();
-        if (!context || !context.chat) return;
-        
-        const untagged = context.chat.filter(msg => !msg.storyTime);
+    function showUntaggedEntries() {
+        const untagged = allEntries.filter(entry => !entry.extensions?.storytimelines?.storyTime);
         
         if (untagged.length === 0) {
-            alert('All messages are tagged!');
+            alert('All entries in this lorebook are tagged!');
             return;
         }
         
-        // Show first untagged message
+        // Show first untagged entry
         showTaggingModal(untagged[0]);
     }
     
     /**
      * Show tagging modal
      */
-    let currentTaggingMessage = null;
+    let currentTaggingEntry = null;
     
-    function showTaggingModal(msg) {
-        currentTaggingMessage = msg;
+    function showTaggingModal(entry) {
+        currentTaggingEntry = entry;
         const modal = document.getElementById('storytimeline-tagging-modal');
-        const preview = document.getElementById('storytimeline-message-preview');
+        const title = document.getElementById('storyline-entry-title');
+        const keys = document.getElementById('storyline-entry-keys');
+        const content = document.getElementById('storyline-entry-content');
         const dateInput = document.getElementById('storytimeline-date-input');
         const timeInput = document.getElementById('storytimeline-time-input');
+        const dateOnlyCheck = document.getElementById('storytimeline-date-only');
         const removeBtn = document.getElementById('storytimeline-tag-remove');
         
-        // Show message preview
-        const msgText = (msg.mes || '').substring(0, 200) + (msg.mes.length > 200 ? '...' : '');
-        preview.textContent = msgText;
+        // Show entry details
+        title.textContent = entry.comment || 'Untitled Entry';
+        keys.textContent = entry.key ? `Keywords: ${entry.key.join(', ')}` : 'No keywords';
+        content.textContent = (entry.content || '').substring(0, 300) + (entry.content.length > 300 ? '...' : '');
         
         // Populate inputs
-        if (msg.storyTime) {
-            const date = new Date(msg.storyTime);
+        if (entry.extensions?.storytimelines?.storyTime) {
+            const date = new Date(entry.extensions.storytimelines.storyTime);
             dateInput.value = date.toISOString().split('T')[0];
             timeInput.value = date.toTimeString().substring(0, 5);
+            dateOnlyCheck.checked = entry.extensions.storytimelines.dateOnly || false;
             removeBtn.style.display = 'inline-block';
         } else {
             const now = new Date();
             dateInput.value = now.toISOString().split('T')[0];
             timeInput.value = now.toTimeString().substring(0, 5);
+            dateOnlyCheck.checked = false;
             removeBtn.style.display = 'none';
         }
+        
+        // Toggle time input based on dateOnly
+        timeInput.disabled = dateOnlyCheck.checked;
+        dateOnlyCheck.addEventListener('change', () => {
+            timeInput.disabled = dateOnlyCheck.checked;
+        });
         
         modal.style.display = 'block';
     }
@@ -575,46 +770,137 @@
      * Hide tagging modal
      */
     function hideTaggingModal() {
-        document.getElementById('storytimeline-tagging-modal').style.display = 'none';
-        currentTaggingMessage = null;
+        const modal = document.getElementById('storytimeline-tagging-modal');
+        modal.style.display = 'none';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%)';
+        currentTaggingEntry = null;
     }
     
     /**
-     * Save message tag
+     * Save entry tag
      */
-    function saveMessageTag() {
-        if (!currentTaggingMessage) return;
+    async function saveEntryTag() {
+        if (!currentTaggingEntry) return;
         
         const dateInput = document.getElementById('storytimeline-date-input');
         const timeInput = document.getElementById('storytimeline-time-input');
+        const dateOnlyCheck = document.getElementById('storytimeline-date-only');
         
-        const storyTime = new Date(`${dateInput.value}T${timeInput.value}`);
-        currentTaggingMessage.storyTime = storyTime.toISOString();
-        
-        const context = getContext();
-        if (context) {
-            saveChatDebounced(context);
+        let storyTime;
+        if (dateOnlyCheck.checked) {
+            // Store as noon on that date
+            storyTime = new Date(`${dateInput.value}T12:00:00`);
+        } else {
+            storyTime = new Date(`${dateInput.value}T${timeInput.value}`);
         }
         
+        // Initialize extensions object if needed
+        if (!currentTaggingEntry.extensions) {
+            currentTaggingEntry.extensions = {};
+        }
+        if (!currentTaggingEntry.extensions.storytimelines) {
+            currentTaggingEntry.extensions.storytimelines = {};
+        }
+        
+        currentTaggingEntry.extensions.storytimelines.storyTime = storyTime.toISOString();
+        currentTaggingEntry.extensions.storytimelines.dateOnly = dateOnlyCheck.checked;
+        
+        await saveLorebook();
         hideTaggingModal();
         refreshTimeline();
     }
     
     /**
-     * Remove message tag
+     * Remove entry tag
      */
-    function removeMessageTag() {
-        if (!currentTaggingMessage) return;
+    async function removeEntryTag() {
+        if (!currentTaggingEntry) return;
         
-        delete currentTaggingMessage.storyTime;
-        
-        const context = getContext();
-        if (context) {
-            saveChatDebounced(context);
+        if (currentTaggingEntry.extensions?.storytimelines) {
+            delete currentTaggingEntry.extensions.storytimelines;
         }
         
+        await saveLorebook();
         hideTaggingModal();
         refreshTimeline();
+    }
+    
+    /**
+     * Save lorebook
+     */
+    async function saveLorebook() {
+        if (!currentLorebook) return;
+        
+        try {
+            await fetch('/api/worldinfo/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: currentLorebook,
+                    entries: allEntries
+                })
+            });
+        } catch (e) {
+            console.error('StoryTimelines: Could not save lorebook', e);
+            alert('Failed to save lorebook. Please try again.');
+        }
+    }
+    
+    /**
+     * Export timeline
+     */
+    function exportTimeline() {
+        if (!currentLorebook || allEntries.length === 0) {
+            alert('No timeline to export!');
+            return;
+        }
+        
+        const taggedEntries = allEntries.filter(entry => entry.extensions?.storytimelines?.storyTime);
+        
+        if (taggedEntries.length === 0) {
+            alert('No tagged entries to export!');
+            return;
+        }
+        
+        // Sort by story time
+        const sorted = [...taggedEntries].sort((a, b) => {
+            const timeA = new Date(a.extensions.storytimelines.storyTime);
+            const timeB = new Date(b.extensions.storytimelines.storyTime);
+            return timeA - timeB;
+        });
+        
+        // Generate markdown
+        let markdown = `# ${currentLorebook} - Timeline\n\n`;
+        markdown += `Generated: ${new Date().toLocaleString()}\n\n`;
+        markdown += `Total Events: ${sorted.length}\n\n`;
+        markdown += `---\n\n`;
+        
+        sorted.forEach(entry => {
+            const storyTimeData = entry.extensions.storytimelines;
+            const time = formatStoryTime(storyTimeData.storyTime, storyTimeData.dateOnly);
+            const title = entry.comment || 'Untitled Entry';
+            const keys = (entry.key || []).join(', ');
+            const content = entry.content || '';
+            
+            markdown += `## ${title}\n\n`;
+            markdown += `**Date:** ${time}\n\n`;
+            if (keys) markdown += `**Keywords:** ${keys}\n\n`;
+            markdown += `${content}\n\n`;
+            markdown += `---\n\n`;
+        });
+        
+        // Download as file
+        const blob = new Blob([markdown], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentLorebook}_timeline.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
     
     /**
@@ -628,7 +914,11 @@
      * Hide settings panel
      */
     function hideSettingsPanel() {
-        document.getElementById('storytimeline-settings').style.display = 'none';
+        const panel = document.getElementById('storytimeline-settings');
+        panel.style.display = 'none';
+        panel.style.top = '50%';
+        panel.style.left = '50%';
+        panel.style.transform = 'translate(-50%, -50%)';
     }
     
     /**
@@ -656,21 +946,6 @@
     }
     
     /**
-     * Save chat with debounce
-     */
-    function saveChatDebounced(context) {
-        try {
-            if (context.saveChat) {
-                context.saveChat();
-            } else if (context.saveChatDebounced) {
-                context.saveChatDebounced();
-            }
-        } catch (e) {
-            console.warn('StoryTimelines: Could not save chat', e);
-        }
-    }
-    
-    /**
      * Make an element draggable by its header
      */
     function makeDraggable(element) {
@@ -679,13 +954,16 @@
         
         if (!header) return;
         
+        // Mouse events
         header.onmousedown = dragMouseDown;
+        
+        // Touch events for mobile
+        header.ontouchstart = dragTouchStart;
         
         function dragMouseDown(e) {
             e = e || window.event;
             e.preventDefault();
             
-            // Get the mouse cursor position at startup
             pos3 = e.clientX;
             pos4 = e.clientY;
             
@@ -693,33 +971,58 @@
             document.onmousemove = elementDrag;
         }
         
+        function dragTouchStart(e) {
+            e = e || window.event;
+            const touch = e.touches[0];
+            
+            pos3 = touch.clientX;
+            pos4 = touch.clientY;
+            
+            document.ontouchend = closeDragElement;
+            document.ontouchmove = elementTouchDrag;
+        }
+        
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
             
-            // Calculate the new cursor position
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
             
-            // Set the element's new position
+            updatePosition();
+        }
+        
+        function elementTouchDrag(e) {
+            e = e || window.event;
+            const touch = e.touches[0];
+            
+            pos1 = pos3 - touch.clientX;
+            pos2 = pos4 - touch.clientY;
+            pos3 = touch.clientX;
+            pos4 = touch.clientY;
+            
+            updatePosition();
+        }
+        
+        function updatePosition() {
             const newTop = element.offsetTop - pos2;
             const newLeft = element.offsetLeft - pos1;
             
-            // Keep the element within viewport bounds
             const maxTop = window.innerHeight - element.offsetHeight;
             const maxLeft = window.innerWidth - element.offsetWidth;
             
             element.style.top = Math.min(Math.max(0, newTop), maxTop) + 'px';
             element.style.left = Math.min(Math.max(0, newLeft), maxLeft) + 'px';
-            element.style.transform = 'none'; // Remove centering transform
+            element.style.transform = 'none';
         }
         
         function closeDragElement() {
-            // Stop moving when mouse button is released
             document.onmouseup = null;
             document.onmousemove = null;
+            document.ontouchend = null;
+            document.ontouchmove = null;
         }
     }
     

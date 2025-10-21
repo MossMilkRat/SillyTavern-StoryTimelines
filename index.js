@@ -1,6 +1,9 @@
 /**
  * StoryTimelines Extension for SillyTavern
- * Allows tagging messages with story time and displaying them chronologically
+ * Version: 1.0.0
+ * Author: Your Name
+ * Description: Allows tagging messages with story time and displaying them chronologically
+ * License: MIT
  */
 
 (function() {
@@ -344,28 +347,61 @@
      */
     function refreshTimeline() {
         const context = getContext();
-        if (!context || !context.chat) {
-            document.getElementById('storytimeline-messages').innerHTML = '<p>No chat loaded.</p>';
-            return;
-        }
-        
-        const messages = context.chat.filter(msg => msg.storyTime);
-        const sorted = [...messages].sort((a, b) => {
-            return new Date(a.storyTime) - new Date(b.storyTime);
-        });
-        
         const container = document.getElementById('storytimeline-messages');
-        container.innerHTML = '';
         
-        if (sorted.length === 0) {
-            container.innerHTML = '<p>No messages tagged with story time yet.</p>';
+        if (!context || !context.chat) {
+            container.innerHTML = `
+                <div class="storytimeline-empty">
+                    <i class="fa-solid fa-comment-slash"></i>
+                    <h4>No Chat Loaded</h4>
+                    <p>Start or load a conversation to use the timeline.</p>
+                </div>
+            `;
             return;
         }
         
-        sorted.forEach((msg, idx) => {
-            const msgEl = createMessageElement(msg, idx);
-            container.appendChild(msgEl);
-        });
+        // Show loading state
+        container.innerHTML = `
+            <div class="storytimeline-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Loading timeline...
+            </div>
+        `;
+        
+        // Small delay for smooth loading effect
+        setTimeout(() => {
+            const messages = context.chat.filter(msg => msg.storyTime);
+            const sorted = [...messages].sort((a, b) => {
+                return new Date(a.storyTime) - new Date(b.storyTime);
+            });
+            
+            container.innerHTML = '';
+            
+            if (sorted.length === 0) {
+                const untaggedCount = context.chat.filter(msg => !msg.storyTime).length;
+                container.innerHTML = `
+                    <div class="storytimeline-empty">
+                        <i class="fa-solid fa-clock"></i>
+                        <h4>No Timeline Events Yet</h4>
+                        <p>Tag messages with story times to see them organized chronologically.</p>
+                        ${untaggedCount > 0 ? `
+                            <p style="margin-bottom: 20px; color: var(--SmartThemeQuoteColor); font-weight: 500;">
+                                ${untaggedCount} untagged message${untaggedCount !== 1 ? 's' : ''} waiting
+                            </p>
+                            <button class="menu_button" onclick="document.getElementById('storytimeline-tag-untagged').click()">
+                                <i class="fa-solid fa-tag"></i> Start Tagging
+                            </button>
+                        ` : '<p style="color: var(--grey70);">Send some messages first!</p>'}
+                    </div>
+                `;
+                return;
+            }
+            
+            sorted.forEach((msg, idx) => {
+                const msgEl = createMessageElement(msg, idx);
+                container.appendChild(msgEl);
+            });
+        }, 150);
     }
     
     /**

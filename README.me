@@ -1,0 +1,171 @@
+# StoryTimelines Extension for SillyTavern
+
+A SillyTavern extension that allows you to tag chat messages with story time and display them in chronological order, regardless of when they were actually sent.
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+## Features
+
+- 📅 **Tag Messages with Story Time**: Add date and time stamps to any message to represent when events occur in your story
+- 📊 **Timeline View**: Display messages sorted by story time instead of message order
+- 🎯 **Drag & Drop Reordering**: Easily adjust story times by dragging messages in the timeline
+- ⚙️ **Customizable Settings**: Toggle date/time format, drag-drop, icon visibility, and auto-refresh
+- 🔄 **Auto-Refresh**: Automatically updates when chat changes or new messages arrive
+- 💬 **Slash Command**: Quick access via `/storytimeline` command
+- 🎨 **Theme Integration**: Seamlessly integrates with SillyTavern's theming system
+- 🔙 **Fallback Support**: Multiple compatibility layers for older SillyTavern versions
+
+## Installation
+
+### Method 1: Git Clone (Recommended)
+
+1. Navigate to your SillyTavern installation directory
+2. Run the following commands:
+
+```bash
+cd public/scripts/extensions/third-party
+git clone https://github.com/yourusername/SillyTavern-StoryTimelines.git storytimelines
+```
+
+3. Restart SillyTavern or reload extensions
+
+### Method 2: Manual Installation
+
+1. Download this repository as a ZIP file
+2. Extract the contents
+3. Copy the `storytimelines` folder to:
+   ```
+   SillyTavern/public/scripts/extensions/third-party/storytimelines/
+   ```
+4. Restart SillyTavern or reload extensions
+
+## Usage
+
+### Opening the Timeline
+
+- **Via Extensions Menu**: Click the clock icon in the extensions menu
+- **Via Slash Command**: Type `/storytimeline` in the chat input
+- **Via Fallback Menu**: Click the clock icon in the top settings bar (if slash commands unavailable)
+
+### Tagging Messages
+
+1. Open the Story Timeline panel
+2. Click **"Tag Untagged Messages"** to tag the first untagged message
+3. Or click the **pencil icon** next to any message in the timeline to edit its story time
+4. Set the story date and time
+5. Click **"Save Tag"**
+
+### Reordering Messages
+
+With drag & drop enabled (default):
+1. Open the Story Timeline panel
+2. Click and drag any message
+3. Drop it on another message to swap their story times
+4. Changes are saved automatically
+
+### Settings
+
+Access settings by clicking the gear icon in the Timeline panel or using `/storytimeline`:
+
+- **Show Timeline Icon**: Toggle visibility of the timeline button in extensions menu
+- **Enable Drag & Drop**: Allow/prevent reordering messages via drag & drop
+- **Auto Refresh on Chat Change**: Automatically update timeline when switching chats
+- **Date/Time Format**: Choose between 12-hour (AM/PM) or 24-hour time format
+
+## Data Structure
+
+The extension adds a `storyTime` field to chat messages:
+
+```javascript
+{
+  mes: "Message content",
+  name: "Character Name",
+  is_user: false,
+  storyTime: "2024-03-15T14:30:00.000Z"  // ISO 8601 format
+}
+```
+
+This data is saved directly to your SillyTavern chat files and persists between sessions.
+
+## Compatibility
+
+- **SillyTavern**: Compatible with current and recent versions
+- **Browser**: Works with Chrome, Firefox, Edge, and other modern browsers
+- **Fallback Support**: Includes compatibility layers for older ST versions
+
+## Screenshots
+
+### Timeline Panel
+![Timeline Panel](screenshots/timeline.png)
+
+### Tagging Interface
+![Tagging Modal](screenshots/tagging.png)
+
+### Settings Panel
+![Settings](screenshots/settings.png)
+
+## Troubleshooting
+
+### Extension doesn't appear
+- Ensure the folder is named `storytimelines` (lowercase)
+- Check browser console (F12) for error messages
+- Verify the extension is in the correct directory
+
+### Slash command not working
+- The extension includes fallback menu entries
+- Look for the clock icon in the extensions menu or top bar
+
+### Tags not saving
+- Check browser console for errors
+- Ensure you have write permissions to the SillyTavern directory
+- Try manually saving the chat
+
+### Drag & drop not working
+- Ensure "Enable Drag & Drop" is checked in settings
+- Try refreshing the page
+- Check if other extensions are interfering
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Changelog
+
+### Version 1.0.0 (2024)
+- Initial release
+- Timeline view with drag & drop support
+- Message tagging interface
+- Settings panel
+- Slash command support
+- Auto-refresh functionality
+- Theme integration
+
+## Acknowledgments
+
+- Built for [SillyTavern](https://github.com/SillyTavern/SillyTavern)
+- Inspired by the need for better story timeline management in roleplay scenarios
+
+## Support
+
+If you encounter any issues or have suggestions:
+- Open an issue on [GitHub](https://github.com/MossMilkRat/SillyTavern-StoryTimelines/issues)
+- Join the SillyTavern Discord community
+
+## Author
+
+Created by MossMilkRat & Claude
+
+---
+
+**Enjoy organizing your stories chronologically!** ⏰

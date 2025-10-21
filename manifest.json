@@ -1,0 +1,12 @@
+{
+  "display_name": "Story Timelines",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "MossMilkRat",
+  "version": "1.0.0",
+  "homePage": "https://github.com/MossMilkRat/SillyTavern-StoryTimelines",
+  "auto_update": true
+}

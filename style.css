@@ -1,0 +1,185 @@
+/**
+ * StoryTimelines Extension Styles
+ * Additional styling for the Story Timelines extension
+ */
+
+/* Timeline Panel */
+#storytimeline-panel {
+    font-family: var(--mainFontFamily);
+}
+
+#storytimeline-panel h3 {
+    color: var(--SmartThemeQuoteColor);
+    font-weight: 600;
+}
+
+/* Timeline Messages */
+.storytimeline-message {
+    transition: all 0.2s ease;
+}
+
+.storytimeline-message:hover {
+    background: var(--black50a) !important;
+    transform: translateX(5px);
+}
+
+.storytimeline-message.dragging {
+    opacity: 0.5;
+    cursor: grabbing !important;
+}
+
+.storytimeline-message.drag-over {
+    border-color: var(--SmartThemeQuoteColor) !important;
+    background: var(--black50a) !important;
+}
+
+/* Buttons */
+.storytimeline-edit-btn {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.storytimeline-edit-btn:hover {
+    background: var(--SmartThemeQuoteColor) !important;
+    color: var(--SmartThemeBodyColor) !important;
+}
+
+/* Settings Panel */
+#storytimeline-settings label {
+    cursor: pointer;
+    user-select: none;
+}
+
+#storytimeline-settings input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+#storytimeline-settings select {
+    padding: 8px;
+    border-radius: 5px;
+    background: var(--black30a);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeBodyColor);
+}
+
+/* Tagging Modal */
+#storytimeline-tagging-modal input[type="date"],
+#storytimeline-tagging-modal input[type="time"] {
+    padding: 8px;
+    border-radius: 5px;
+    background: var(--black30a);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeBodyColor);
+}
+
+#storytimeline-message-preview {
+    font-family: var(--mainFontFamily);
+    line-height: 1.5;
+    color: var(--grey70);
+}
+
+/* Button Styles */
+.menu_button {
+    margin: 0 5px;
+    transition: all 0.2s ease;
+}
+
+.menu_button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar Styling */
+#storytimeline-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#storytimeline-content::-webkit-scrollbar-track {
+    background: var(--black30a);
+    border-radius: 4px;
+}
+
+#storytimeline-content::-webkit-scrollbar-thumb {
+    background: var(--SmartThemeBorderColor);
+    border-radius: 4px;
+}
+
+#storytimeline-content::-webkit-scrollbar-thumb:hover {
+    background: var(--SmartThemeQuoteColor);
+}
+
+/* Timeline Button */
+#storytimeline-button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#storytimeline-button:hover {
+    background: var(--black50a);
+    transform: translateX(5px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #storytimeline-panel {
+        width: 95% !important;
+        max-width: none !important;
+    }
+    
+    #storytimeline-settings,
+    #storytimeline-tagging-modal {
+        width: 90% !important;
+        max-width: none !important;
+    }
+}
+
+/* Loading State */
+.storytimeline-loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--grey70);
+}
+
+.storytimeline-loading::after {
+    content: '...';
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* Empty State */
+.storytimeline-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--grey70);
+}
+
+.storytimeline-empty i {
+    font-size: 3em;
+    margin-bottom: 15px;
+    display: block;
+    opacity: 0.5;
+}
+
+/* Animation for new messages */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.storytimeline-message-new {
+    animation: slideIn 0.3s ease;
+}

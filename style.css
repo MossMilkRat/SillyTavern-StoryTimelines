@@ -1,26 +1,109 @@
 /**
  * StoryTimelines Extension Styles
- * Additional styling for the Story Timelines extension
+ * Enhanced styling with better theme integration
  */
 
 /* Timeline Panel */
 #storytimeline-panel {
     font-family: var(--mainFontFamily);
+    background: var(--SmartThemeBlurTintColor) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Header styling - match ST theme */
+#storytimeline-panel > div:first-child {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border-bottom: 1px solid var(--SmartThemeBorderColor) !important;
+    padding: 15px;
 }
 
 #storytimeline-panel h3 {
-    color: var(--SmartThemeQuoteColor);
+    color: var(--SmartThemeEmColor);
     font-weight: 600;
+    margin: 0;
+}
+
+/* Content area - match chat background */
+#storytimeline-content {
+    background: var(--SmartThemeChatTintColor) !important;
+    padding: 15px;
+}
+
+/* Empty state styling */
+.storytimeline-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--SmartThemeEmColor);
+}
+
+.storytimeline-empty i {
+    font-size: 4em;
+    margin-bottom: 20px;
+    display: block;
+    opacity: 0.3;
+    color: var(--SmartThemeQuoteColor);
+}
+
+.storytimeline-empty h4 {
+    color: var(--SmartThemeEmColor);
+    font-size: 1.3em;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.storytimeline-empty p {
+    color: var(--grey70);
+    margin-bottom: 25px;
+    line-height: 1.6;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.storytimeline-empty button {
+    background: var(--SmartThemeQuoteColor) !important;
+    color: var(--SmartThemeBodyColor) !important;
+    border: none !important;
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.storytimeline-empty button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    filter: brightness(1.1);
+}
+
+/* Loading state */
+.storytimeline-loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--SmartThemeEmColor);
+    font-size: 1.1em;
+}
+
+.storytimeline-loading i {
+    margin-right: 10px;
+    color: var(--SmartThemeQuoteColor);
 }
 
 /* Timeline Messages */
 .storytimeline-message {
+    margin-bottom: 15px;
+    padding: 15px;
+    background: var(--SmartThemeBlurTintColor);
+    border-radius: 8px;
+    border-left: 4px solid var(--SmartThemeQuoteColor);
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .storytimeline-message:hover {
-    background: var(--black50a) !important;
+    background: var(--SmartThemeShadowColor);
     transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .storytimeline-message.dragging {
@@ -30,55 +113,202 @@
 
 .storytimeline-message.drag-over {
     border-color: var(--SmartThemeQuoteColor) !important;
-    background: var(--black50a) !important;
+    background: var(--SmartThemeShadowColor) !important;
+    box-shadow: 0 0 0 2px var(--SmartThemeQuoteColor);
+}
+
+.storytimeline-message strong {
+    color: var(--SmartThemeQuoteColor);
+    font-size: 1.05em;
+}
+
+.storytimeline-message > div:nth-child(2) {
+    color: var(--grey70);
+}
+
+.storytimeline-message > div:last-child {
+    color: var(--SmartThemeEmColor);
 }
 
 /* Buttons */
 .storytimeline-edit-btn {
-    padding: 5px 10px;
+    padding: 6px 12px;
     font-size: 0.9em;
     transition: all 0.2s ease;
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 1px solid var(--SmartThemeBorderColor) !important;
 }
 
 .storytimeline-edit-btn:hover {
     background: var(--SmartThemeQuoteColor) !important;
     color: var(--SmartThemeBodyColor) !important;
+    border-color: var(--SmartThemeQuoteColor) !important;
+    transform: scale(1.05);
+}
+
+/* Bottom button bar */
+#storytimeline-panel > div:last-child {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border-top: 1px solid var(--SmartThemeBorderColor) !important;
+    padding: 12px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+#storytimeline-tag-untagged,
+#storytimeline-refresh {
+    flex: 0 1 auto;
+    padding: 10px 20px;
+    font-weight: 500;
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 1px solid var(--SmartThemeBorderColor) !important;
+    color: var(--SmartThemeEmColor) !important;
+    transition: all 0.2s ease;
+}
+
+#storytimeline-tag-untagged {
+    background: var(--SmartThemeQuoteColor) !important;
+    border-color: var(--SmartThemeQuoteColor) !important;
+    color: var(--SmartThemeBodyColor) !important;
+}
+
+#storytimeline-tag-untagged:hover {
+    filter: brightness(1.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+#storytimeline-refresh:hover {
+    background: var(--SmartThemeShadowColor) !important;
+    border-color: var(--SmartThemeQuoteColor) !important;
+    transform: translateY(-2px);
 }
 
 /* Settings Panel */
+#storytimeline-settings {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 2px solid var(--SmartThemeBorderColor) !important;
+    color: var(--SmartThemeEmColor);
+}
+
+#storytimeline-settings h3 {
+    color: var(--SmartThemeQuoteColor);
+    border-bottom: 2px solid var(--SmartThemeBorderColor);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
 #storytimeline-settings label {
     cursor: pointer;
     user-select: none;
+    color: var(--SmartThemeEmColor);
+}
+
+#storytimeline-settings label span {
+    color: var(--SmartThemeEmColor);
 }
 
 #storytimeline-settings input[type="checkbox"] {
     cursor: pointer;
     width: 18px;
     height: 18px;
+    accent-color: var(--SmartThemeQuoteColor);
 }
 
 #storytimeline-settings select {
     padding: 8px;
     border-radius: 5px;
-    background: var(--black30a);
+    background: var(--SmartThemeChatTintColor);
     border: 1px solid var(--SmartThemeBorderColor);
-    color: var(--SmartThemeBodyColor);
+    color: var(--SmartThemeEmColor);
+}
+
+#storytimeline-settings select:focus {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    border-color: var(--SmartThemeQuoteColor);
+}
+
+#storytimeline-settings button {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 1px solid var(--SmartThemeBorderColor) !important;
+    color: var(--SmartThemeEmColor) !important;
+}
+
+#storytimeline-settings-save {
+    background: var(--SmartThemeQuoteColor) !important;
+    border-color: var(--SmartThemeQuoteColor) !important;
+    color: var(--SmartThemeBodyColor) !important;
+}
+
+#storytimeline-settings-save:hover {
+    filter: brightness(1.15);
 }
 
 /* Tagging Modal */
-#storytimeline-tagging-modal input[type="date"],
-#storytimeline-tagging-modal input[type="time"] {
-    padding: 8px;
-    border-radius: 5px;
-    background: var(--black30a);
-    border: 1px solid var(--SmartThemeBorderColor);
-    color: var(--SmartThemeBodyColor);
+#storytimeline-tagging-modal {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 2px solid var(--SmartThemeBorderColor) !important;
+    color: var(--SmartThemeEmColor);
+}
+
+#storytimeline-tagging-modal h3 {
+    color: var(--SmartThemeQuoteColor);
+    border-bottom: 2px solid var(--SmartThemeBorderColor);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+#storytimeline-tagging-modal label {
+    color: var(--SmartThemeEmColor);
 }
 
 #storytimeline-message-preview {
     font-family: var(--mainFontFamily);
     line-height: 1.5;
-    color: var(--grey70);
+    color: var(--SmartThemeEmColor);
+    background: var(--SmartThemeChatTintColor) !important;
+    border: 1px solid var(--SmartThemeBorderColor);
+}
+
+#storytimeline-tagging-modal input[type="date"],
+#storytimeline-tagging-modal input[type="time"] {
+    padding: 8px;
+    border-radius: 5px;
+    background: var(--SmartThemeChatTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeEmColor);
+}
+
+#storytimeline-tagging-modal input:focus {
+    outline: 2px solid var(--SmartThemeQuoteColor);
+    border-color: var(--SmartThemeQuoteColor);
+}
+
+#storytimeline-tagging-modal button {
+    background: var(--SmartThemeBlurTintColor) !important;
+    border: 1px solid var(--SmartThemeBorderColor) !important;
+    color: var(--SmartThemeEmColor) !important;
+}
+
+#storytimeline-tag-save {
+    background: var(--SmartThemeQuoteColor) !important;
+    border-color: var(--SmartThemeQuoteColor) !important;
+    color: var(--SmartThemeBodyColor) !important;
+}
+
+#storytimeline-tag-remove {
+    background: #d32f2f !important;
+    border-color: #d32f2f !important;
+    color: white !important;
+}
+
+#storytimeline-tag-save:hover {
+    filter: brightness(1.15);
+}
+
+#storytimeline-tag-remove:hover {
+    filter: brightness(1.15);
 }
 
 /* Button Styles */
@@ -89,37 +319,41 @@
 
 .menu_button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Scrollbar Styling */
 #storytimeline-content::-webkit-scrollbar {
-    width: 8px;
+    width: 10px;
 }
 
 #storytimeline-content::-webkit-scrollbar-track {
-    background: var(--black30a);
-    border-radius: 4px;
+    background: var(--SmartThemeChatTintColor);
+    border-radius: 5px;
 }
 
 #storytimeline-content::-webkit-scrollbar-thumb {
     background: var(--SmartThemeBorderColor);
-    border-radius: 4px;
+    border-radius: 5px;
 }
 
 #storytimeline-content::-webkit-scrollbar-thumb:hover {
     background: var(--SmartThemeQuoteColor);
 }
 
-/* Timeline Button */
+/* Timeline Button in menu */
 #storytimeline-button {
     cursor: pointer;
     transition: all 0.2s ease;
+    color: var(--SmartThemeEmColor) !important;
 }
 
 #storytimeline-button:hover {
-    background: var(--black50a);
+    background: var(--SmartThemeShadowColor);
     transform: translateX(5px);
+}
+
+#storytimeline-button .fa-clock {
+    color: var(--SmartThemeQuoteColor);
 }
 
 /* Responsive Design */
@@ -134,38 +368,15 @@
         width: 90% !important;
         max-width: none !important;
     }
-}
-
-/* Loading State */
-.storytimeline-loading {
-    text-align: center;
-    padding: 20px;
-    color: var(--grey70);
-}
-
-.storytimeline-loading::after {
-    content: '...';
-    animation: dots 1.5s steps(4, end) infinite;
-}
-
-@keyframes dots {
-    0%, 20% { content: '.'; }
-    40% { content: '..'; }
-    60%, 100% { content: '...'; }
-}
-
-/* Empty State */
-.storytimeline-empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--grey70);
-}
-
-.storytimeline-empty i {
-    font-size: 3em;
-    margin-bottom: 15px;
-    display: block;
-    opacity: 0.5;
+    
+    #storytimeline-panel > div:last-child {
+        flex-direction: column;
+    }
+    
+    #storytimeline-tag-untagged,
+    #storytimeline-refresh {
+        width: 100%;
+    }
 }
 
 /* Animation for new messages */
@@ -182,4 +393,18 @@
 
 .storytimeline-message-new {
     animation: slideIn 0.3s ease;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+#storytimeline-content > * {
+    animation: fadeIn 0.3s ease;
 }

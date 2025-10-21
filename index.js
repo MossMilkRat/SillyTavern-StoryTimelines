@@ -158,7 +158,7 @@
             <div id="storytimeline-settings" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                  width: 400px; background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); 
                  border-radius: 10px; z-index: 10000; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 20px;">
-                <h3>Timeline Settings</h3>
+                <h3 style="cursor: move; user-select: none;">Timeline Settings</h3>
                 <div style="margin: 15px 0;">
                     <label style="display: flex; align-items: center; margin-bottom: 10px;">
                         <input type="checkbox" id="setting-show-icon" ${settings.showTimelineIcon ? 'checked' : ''}>
@@ -189,6 +189,9 @@
         
         document.getElementById('storytimeline-settings-save').addEventListener('click', saveSettingsPanel);
         document.getElementById('storytimeline-settings-cancel').addEventListener('click', hideSettingsPanel);
+        
+        // Make draggable
+        makeDraggable(document.getElementById('storytimeline-settings'));
     }
     
     /**
@@ -199,7 +202,7 @@
             <div id="storytimeline-tagging-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                  width: 500px; background: var(--SmartThemeBodyColor); border: 2px solid var(--SmartThemeBorderColor); 
                  border-radius: 10px; z-index: 10001; box-shadow: 0 4px 20px rgba(0,0,0,0.5); padding: 20px;">
-                <h3>Tag Message with Story Time</h3>
+                <h3 style="cursor: move; user-select: none;">Tag Message with Story Time</h3>
                 <div id="storytimeline-message-preview" style="max-height: 150px; overflow-y: auto; padding: 10px; 
                      background: var(--black30a); border-radius: 5px; margin-bottom: 15px; font-size: 0.9em;"></div>
                 <div style="margin: 15px 0;">
@@ -221,6 +224,9 @@
         document.getElementById('storytimeline-tag-save').addEventListener('click', saveMessageTag);
         document.getElementById('storytimeline-tag-remove').addEventListener('click', removeMessageTag);
         document.getElementById('storytimeline-tag-cancel').addEventListener('click', hideTaggingModal);
+        
+        // Make draggable
+        makeDraggable(document.getElementById('storytimeline-tagging-modal'));
     }
     
     /**
@@ -661,6 +667,59 @@
             }
         } catch (e) {
             console.warn('StoryTimelines: Could not save chat', e);
+        }
+    }
+    
+    /**
+     * Make an element draggable by its header
+     */
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        const header = element.querySelector('h3');
+        
+        if (!header) return;
+        
+        header.onmousedown = dragMouseDown;
+        
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            // Get the mouse cursor position at startup
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            // Calculate the new cursor position
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // Set the element's new position
+            const newTop = element.offsetTop - pos2;
+            const newLeft = element.offsetLeft - pos1;
+            
+            // Keep the element within viewport bounds
+            const maxTop = window.innerHeight - element.offsetHeight;
+            const maxLeft = window.innerWidth - element.offsetWidth;
+            
+            element.style.top = Math.min(Math.max(0, newTop), maxTop) + 'px';
+            element.style.left = Math.min(Math.max(0, newLeft), maxLeft) + 'px';
+            element.style.transform = 'none'; // Remove centering transform
+        }
+        
+        function closeDragElement() {
+            // Stop moving when mouse button is released
+            document.onmouseup = null;
+            document.onmousemove = null;
         }
     }
     

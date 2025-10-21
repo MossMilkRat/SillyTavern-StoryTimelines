@@ -187,9 +187,14 @@
 
 /* Settings Panel */
 #storytimeline-settings {
-    background: var(--SmartThemeBlurTintColor) !important;
+    background: var(--SmartThemeBodyColor) !important;
     border: 2px solid var(--SmartThemeBorderColor) !important;
     color: var(--SmartThemeEmColor);
+    cursor: move;
+}
+
+#storytimeline-settings h3 {
+    cursor: move;
 }
 
 #storytimeline-settings h3 {
